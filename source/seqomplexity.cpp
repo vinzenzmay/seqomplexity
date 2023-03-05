@@ -4,10 +4,64 @@
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/io/sequence_file/all.hpp>
  
-// This is the program!
-// Take a look at it if you are interested in an example of parsing a data file.
-// -----------------------------------------------------------------------------
- 
+
+size_t kmer_to_hash(std::vector<seqan3::dna5> & sequence, size_t it_start, size_t it_end)
+{
+    size_t hashvalue = 0;
+    for (size_t i = it_start; i < it_end; i++)
+    {
+        hashvalue = (hashvalue << 3) + seqan3::to_rank(sequence[i]);
+    }
+    return hashvalue;
+}
+
+std::vector<size_t> sequence_to_kmer_hashes(
+    std::vector<seqan3::dna5> & sequence,
+    size_t k,
+    size_t it_start,
+    size_t it_end)
+{
+    //body
+    // return [kmer_to_hash(seq[i:i+k]) for i in range(len(seq)-k+1)]
+    std::vector<size_t> hashvalues(it_end - it_start -k+1);
+    for (size_t i = it_start; i < it_end-k+1; i++)
+    {
+        hashvalues[i-it_start] = kmer_to_hash(sequence,i,i+k);
+    }
+    return hashvalues;
+}
+
+std::vector<float> sequence_complexity(
+    std::vector<seqan3::dna5> & sequence,
+    size_t W,
+    std::vector<uint8_t> kmers)
+{
+    size_t N(sequence.size());
+    // --- setup --- //
+    std::vector<float> results(N,float(0.0));
+    size_t MAX_UNIQUE_HASHES[kmers.size()];
+    for (size_t i = 0; i < kmers.size(); i++){
+        MAX_UNIQUE_HASHES[i] = std::min(W-kmers[i]+1,size_t(pow(4,kmers[i])));
+    }
+    // --- init --- //
+    // starting k-mers
+    std::vector<std::vector<size_t>> kmer_hashes(kmers.size());
+    for (size_t i = 0; i < kmers.size(); i++)
+    {
+        kmer_hashes[i] = sequence_to_kmer_hashes(sequence, kmers[i], 0, W);
+    }
+    // starting unique k-mer counts
+    std::vector<size_t> current_unique_n_hashes(kmers.size());
+    for (size_t i = 0; i < kmers.size(); i++)
+    {
+        current_unique_n_hashes[i] = std::set<size_t>(kmer_hashes[i].begin(), kmer_hashes[i].end() ).size();
+    }
+
+
+    return results;
+
+}
+
 void run_program(
         std::filesystem::path & input,
         std::filesystem::path & output,
@@ -15,12 +69,10 @@ void run_program(
         std::vector<uint8_t> kmers)
 {
     seqan3::sequence_file_input fin{input};
- 
-    // `&&` is important because seqan3::views::chunk returns temporaries!
     for (auto & record : fin)
     {
-        // `records` contains 10 elements (or less at the end)
         seqan3::debug_stream << "ID:  " << record.id() << '\n'; // prints first ID in batch
+        sequence_complexity(record.sequence(), 15, kmers);
     }
 }
 // -----------------------------------------------------------------------------
