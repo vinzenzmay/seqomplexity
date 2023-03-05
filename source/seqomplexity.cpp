@@ -31,6 +31,16 @@ std::vector<size_t> sequence_to_kmer_hashes(
     return hashvalues;
 }
 
+float product(std::vector<size_t> & a, std::vector<size_t> & b)
+{
+    float result(1.0);
+    for (size_t i = 0; i < std::min(a.size(),b.size()); i++)
+    {
+        result *= (float(a[i]) / float(b[i]));
+    }
+    return result;
+}
+
 std::vector<float> sequence_complexity(
     std::vector<seqan3::dna5> & sequence,
     size_t W,
@@ -39,7 +49,7 @@ std::vector<float> sequence_complexity(
     size_t N(sequence.size());
     // --- setup --- //
     std::vector<float> results(N,float(0.0));
-    size_t MAX_UNIQUE_HASHES[kmers.size()];
+    std::vector<size_t> MAX_UNIQUE_HASHES(kmers.size());
     for (size_t i = 0; i < kmers.size(); i++){
         MAX_UNIQUE_HASHES[i] = std::min(W-kmers[i]+1,size_t(pow(4,kmers[i])));
     }
@@ -56,6 +66,9 @@ std::vector<float> sequence_complexity(
     {
         current_unique_n_hashes[i] = std::set<size_t>(kmer_hashes[i].begin(), kmer_hashes[i].end() ).size();
     }
+    // save resulting scores
+    results[size_t(W/2)] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
+    // results[int(W/2)] = np.product(current_unique_n_hashes / MAX_UNIQUE_HASHES,dtype=np.float16)
 
 
     return results;
