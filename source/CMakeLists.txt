@@ -13,3 +13,6 @@ find_package (sharg 1.0 REQUIRED)
 # build app with seqan3
 add_executable (seqomplexity seqomplexity.cpp)
 target_link_libraries (seqomplexity seqan3::seqan3 sharg::sharg)
+
+add_executable (GC_content GC_content.cpp)
+target_link_libraries (GC_content seqan3::seqan3 sharg::sharg)
