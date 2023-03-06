@@ -5,12 +5,12 @@
 #include <seqan3/io/sequence_file/all.hpp>
  
 
-size_t kmer_to_hash(std::vector<seqan3::dna5> & sequence, size_t it_start, size_t it_end)
+size_t kmer_to_hash(std::vector<seqan3::dna5> & sequence, size_t it_start, size_t it_end, size_t base=3)
 {
     size_t hashvalue = 0;
     for (size_t i = it_start; i < it_end; i++)
     {
-        hashvalue = (hashvalue << 3) + seqan3::to_rank(sequence[i]);
+        hashvalue = (hashvalue << base) + seqan3::to_rank(sequence[i]);
     }
     return hashvalue;
 }
@@ -31,6 +31,11 @@ std::vector<size_t> sequence_to_kmer_hashes(
     return hashvalues;
 }
 
+size_t extend_hash(size_t kmer_hash, uint8_t letter_dna5 , size_t k, size_t base=3)
+{
+    return ((kmer_hash << base) + letter_dna5) & ((1 << (k*base))-1);
+}
+
 float product(std::vector<size_t> & a, std::vector<size_t> & b)
 {
     float result(1.0);
@@ -41,14 +46,14 @@ float product(std::vector<size_t> & a, std::vector<size_t> & b)
     return result;
 }
 
-std::vector<float> sequence_complexity(
+void sequence_complexity(
     std::vector<seqan3::dna5> & sequence,
     size_t W,
     std::vector<uint8_t> kmers)
 {
     size_t N(sequence.size());
     // --- setup --- //
-    std::vector<float> results(N,float(0.0));
+    //std::vector<float> results(N,float(0.0));
     std::vector<size_t> MAX_UNIQUE_HASHES(kmers.size());
     for (size_t i = 0; i < kmers.size(); i++){
         MAX_UNIQUE_HASHES[i] = std::min(W-kmers[i]+1,size_t(pow(4,kmers[i])));
@@ -67,24 +72,53 @@ std::vector<float> sequence_complexity(
         current_unique_n_hashes[i] = std::set<size_t>(kmer_hashes[i].begin(), kmer_hashes[i].end() ).size();
     }
     // save resulting scores
-    results[size_t(W/2)] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
-    // results[int(W/2)] = np.product(current_unique_n_hashes / MAX_UNIQUE_HASHES,dtype=np.float16)
+    //results[size_t(W/2)] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
 
-
-    return results;
+    // cout padding
+    for (size_t i = 0; i < size_t(W/2); i++)
+    {
+        std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+    }
+    // main loop
+    for (size_t i = size_t(W/2)+1; i < N-size_t(W/2); i++)
+    {
+        size_t h = seqan3::to_rank(sequence[i+size_t(W/2)]);
+        for (size_t j = 0; j < kmers.size(); j++)
+        {
+            size_t k = kmers[j];
+            size_t position = size_t((i-size_t(W/2)-2)%(W-k+1));
+            size_t last_position=size_t((i-size_t(W/2)-2)%(W-k+1));
+            size_t old_hash = kmer_hashes[j][last_position];
+            bool last_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), kmer_hashes[j][position]) == 1;
+            current_unique_n_hashes[j] -= size_t(last_hash_unique);
+            size_t new_hash = extend_hash(old_hash,h,k);
+            kmer_hashes[j][position]=new_hash;
+            // update count of unique elements in k-mers
+            bool new_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), new_hash) == 1;
+            current_unique_n_hashes[j] += int(new_hash_unique);
+        }
+        std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+        //results[i] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
+    }
+    for (size_t i = N-size_t(W/2)+1; i < N; i++)
+    {
+        std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+    }
+    
+    return ;
 
 }
 
 void run_program(
         std::filesystem::path & input,
-        std::filesystem::path & output,
+        //std::filesystem::path & output,
         size_t wsize,
         std::vector<uint8_t> kmers)
 {
     seqan3::sequence_file_input fin{input};
     for (auto & record : fin)
     {
-        seqan3::debug_stream << "ID:  " << record.id() << '\n'; // prints first ID in batch
+        //seqan3::debug_stream << "ID:  " << record.id() << '\n'; // prints first ID in batch
         sequence_complexity(record.sequence(), 15, kmers);
     }
 }
@@ -93,7 +127,7 @@ void run_program(
 struct cmd_arguments
 {
     std::filesystem::path input{};
-    std::filesystem::path output{};
+    //std::filesystem::path output{};
     size_t wsize{};
     std::vector<uint8_t> kmers{};
 };
@@ -111,12 +145,12 @@ void initialise_parser(sharg::parser & parser, cmd_arguments & args)
         .description = "reference file in fasta format.",
         .required = true,
         .validator = sharg::input_file_validator{{"fa", "fasta"}}});
-    parser.add_option(args.output, sharg::config{
-        .short_id = 'o',
-        .long_id = "output",
-        .description = "path to output memmap.",
-        .required = true,
-        .validator = sharg::output_file_validator{"fa", "fasta"}});
+    // parser.add_option(args.output, sharg::config{
+    //     .short_id = 'o',
+    //     .long_id = "output",
+    //     .description = "path to output memmap.",
+    //     .required = true,
+    //     .validator = sharg::output_file_validator{"fa", "fasta"}});
     parser.add_option(args.wsize, sharg::config{
         .short_id = 'w',
         .long_id = "wsize",
@@ -145,7 +179,7 @@ int main(int argc, char ** argv)
  
     // parsing was successful !
     // we can start running our program
-    run_program(args.input, args.output, args.wsize, args.kmers);
+    run_program(args.input, args.wsize, args.kmers);
  
     return 0;
 }
