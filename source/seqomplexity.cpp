@@ -46,6 +46,24 @@ float product(std::vector<size_t> & a, std::vector<size_t> & b)
     return result;
 }
 
+void print_current_unique_hashes(std::vector<size_t> h)
+{
+    for (size_t x : h)
+    {
+        std::cout << "unique hashes: " << x << ' ';
+    }
+    std::cout << '\n';
+}
+
+void print_seq_interval(std::vector<seqan3::dna5> & sequence, size_t start, size_t end)
+{
+    for (size_t i = start; i < end; i++)
+    {
+        std::cout << seqan3::to_char(sequence[i]);
+    }
+    std::cout << '\n';
+}
+
 void sequence_complexity(
     std::vector<seqan3::dna5> & sequence,
     size_t W,
@@ -60,6 +78,7 @@ void sequence_complexity(
     }
     // --- init --- //
     // starting k-mers
+    // k-mers are saved each as a hash code. Each vector saves all hash values of all k-mers in the current window.
     std::vector<std::vector<size_t>> kmer_hashes(kmers.size());
     for (size_t i = 0; i < kmers.size(); i++)
     {
@@ -75,19 +94,33 @@ void sequence_complexity(
     //results[size_t(W/2)] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
 
     // cout padding
-    for (size_t i = 0; i < size_t(W/2); i++)
+    for (size_t i = 0; i < size_t(W/2)+1; i++)
     {
+        std::cout << i << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+        print_current_unique_hashes(current_unique_n_hashes);
     }
+    
+        for (size_t hashval : kmer_hashes[0])
+        {
+            std::cout << hashval << '\t';
+        }
+        std::cout << '\n';
+        print_seq_interval(sequence,0,W);
+
+
+    std::cout << "main loop\n";
     // main loop
-    for (size_t i = size_t(W/2)+1; i < N-size_t(W/2); i++)
+    for (size_t i = 1; i < N-W+1; i++)
     {
-        size_t h = seqan3::to_rank(sequence[i+size_t(W/2)]);
+        std::cout << "# --- #\n";
+        print_seq_interval(sequence,i,i+W);
+        size_t h = seqan3::to_rank(sequence[i+W-1]);
         for (size_t j = 0; j < kmers.size(); j++)
         {
             size_t k = kmers[j];
-            size_t position = size_t((i-size_t(W/2)-2)%(W-k+1));
-            size_t last_position=size_t((i-size_t(W/2)-2)%(W-k+1));
+            size_t position = size_t((W+i-1)%(W-k+1));
+            size_t last_position=size_t((W+i-2)%(W-k+1));
             size_t old_hash = kmer_hashes[j][last_position];
             bool last_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), kmer_hashes[j][position]) == 1;
             current_unique_n_hashes[j] -= size_t(last_hash_unique);
@@ -96,16 +129,41 @@ void sequence_complexity(
             // update count of unique elements in k-mers
             bool new_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), new_hash) == 1;
             current_unique_n_hashes[j] += int(new_hash_unique);
+            for (size_t hashval : kmer_hashes[j])
+            {
+                std::cout << hashval << '\t';
+            }
+            std::cout << '\n';
+            std::cout << "position: " << position << " last position: " << last_position << " kmer: " << k << " old hash: " << old_hash << " new hash: " << new_hash << " new letter: " << seqan3::to_char(sequence[i+W-1]) << '\n';
         }
+        std::cout << i+size_t(W/2) << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+        print_current_unique_hashes(current_unique_n_hashes);
         //results[i] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
     }
-    for (size_t i = N-size_t(W/2)+1; i < N; i++)
+    for (size_t i = N-size_t(W/2); i < N; i++)
     {
+        std::cout << (i+size_t(W/2)) << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
+        print_current_unique_hashes(current_unique_n_hashes);
     }
     
     return ;
+
+}
+
+
+void test_prog()
+{
+    using namespace seqan3::literals;
+    std::vector<seqan3::dna5> seq("ACGNAAAACCCCACT"_dna5);
+    std::vector<size_t> kmer_hashes = sequence_to_kmer_hashes(seq,3,0,5);
+    std::cout << "extend_hash(0,1,2,2) " << extend_hash(0,1,2,2) << " of: " << 1 << "\n";
+    std::cout << "extend_hash(1,0,2,2) " << extend_hash(1,1,2,2) << " of: " << 5 << "\n";
+    std::cout << "extend_hash(10,0,2,2) " << extend_hash(10,1,2,2) << " of: " << 9 << "\n";
+    std::cout << "extend_hash(64,0,2,2) " << extend_hash(64,1,3,3) << " of: " << 1 << "\n";
+    std::cout << "kmer_to_hash(seq, 0, 3, 3) =" << kmer_to_hash(seq, 0, 3, 3)  << " of: (ACG) " << 10 << "\n";
+    std::cout << "kmer_to_hash(seq, 1, 4, 3) =" << kmer_to_hash(seq, 1, 4, 3)  << " of: (CGN) " << 83 << "\n";
 
 }
 
@@ -115,11 +173,12 @@ void run_program(
         size_t wsize,
         std::vector<uint8_t> kmers)
 {
+    test_prog();
     seqan3::sequence_file_input fin{input};
     for (auto & record : fin)
     {
         //seqan3::debug_stream << "ID:  " << record.id() << '\n'; // prints first ID in batch
-        sequence_complexity(record.sequence(), 15, kmers);
+        sequence_complexity(record.sequence(), wsize, kmers);
     }
 }
 // -----------------------------------------------------------------------------
