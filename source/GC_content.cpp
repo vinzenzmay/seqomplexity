@@ -42,24 +42,24 @@ void sequence_GC(
     size_t GCs = GC_of_interval(sequence,0,W);
     float result = float(std::popcount(GCs)) / float(W);
     // padding
-    for (size_t i = 0; i < size_t(W/2); i++)
+    for (size_t i = 0; i < size_t(W/2)+1; i++)
     {
-        std::cout << result << ' ' << seqan3::to_char(sequence[i]) << '\n';
+        std::cout << result << ' ' << GCs << ' ' << seqan3::to_char(sequence[i]) << '\n';
     }
     
     // main loop
     for (size_t i = size_t(W/2)+1; i < N-size_t(W/2); i++)
     {
         GCs = GCs << 1;
-        GCs += size_t(is_base_GT(sequence[i]));
+        GCs += size_t(is_base_GT(sequence[i+size_t(W/2)]));
         GCs &= (1 << W)-1;
         result = float(std::popcount(GCs)) / float(W);
-        std::cout << result << ' ' << seqan3::to_char(sequence[i]) << ' ' << GCs << ' ' << float(std::popcount(GCs)) << ' ' << float(W) << '\n';
+        std::cout << result << ' ' << seqan3::to_char(sequence[i+size_t(W/2)]) << ' ' << GCs << ' ' << float(std::popcount(GCs)) << ' ' << float(W) << '\n';
     }
     // padding
-    for (size_t i = N-size_t(W/2)+1; i < N; i++)
+    for (size_t i = N-size_t(W/2); i < N; i++)
     {
-        std::cout << result << '\n';
+        std::cout << result << ' ' << GCs << ' ' << seqan3::to_char(sequence[i]) << '\n';
     }
     return ;
 
