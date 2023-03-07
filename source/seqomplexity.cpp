@@ -96,31 +96,32 @@ void sequence_complexity(
     // cout padding
     for (size_t i = 0; i < size_t(W/2)+1; i++)
     {
-        std::cout << i << '\n';
+        // std::cout << i << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
-        print_current_unique_hashes(current_unique_n_hashes);
+        // print_current_unique_hashes(current_unique_n_hashes);
     }
     
-        for (size_t hashval : kmer_hashes[0])
-        {
-            std::cout << hashval << '\t';
-        }
-        std::cout << '\n';
-        print_seq_interval(sequence,0,W);
+    // for (size_t hashval : kmer_hashes[0])
+    // {
+    //     std::cout << hashval << '\t';
+    // }
+    // std::cout << '\n';
+    // print_seq_interval(sequence,0,W);
 
 
-    std::cout << "main loop\n";
+    // std::cout << "main loop\n";
     // main loop
     for (size_t i = 1; i < N-W+1; i++)
     {
-        std::cout << "# --- #\n";
-        print_seq_interval(sequence,i,i+W);
+        // std::cout << "# --- #\n";
+        // print_seq_interval(sequence,i,i+W);
         size_t h = seqan3::to_rank(sequence[i+W-1]);
         for (size_t j = 0; j < kmers.size(); j++)
         {
             size_t k = kmers[j];
-            size_t position = size_t((W+i-1)%(W-k+1));
-            size_t last_position=size_t((W+i-2)%(W-k+1));
+            size_t k_base_length(W-k+1);
+            size_t position = size_t((k_base_length+i-1)%(k_base_length));
+            size_t last_position=size_t((k_base_length+i-2)%(k_base_length));
             size_t old_hash = kmer_hashes[j][last_position];
             bool last_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), kmer_hashes[j][position]) == 1;
             current_unique_n_hashes[j] -= size_t(last_hash_unique);
@@ -129,23 +130,23 @@ void sequence_complexity(
             // update count of unique elements in k-mers
             bool new_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), new_hash) == 1;
             current_unique_n_hashes[j] += int(new_hash_unique);
-            for (size_t hashval : kmer_hashes[j])
-            {
-                std::cout << hashval << '\t';
-            }
-            std::cout << '\n';
-            std::cout << "position: " << position << " last position: " << last_position << " kmer: " << k << " old hash: " << old_hash << " new hash: " << new_hash << " new letter: " << seqan3::to_char(sequence[i+W-1]) << '\n';
+            // for (size_t hashval : kmer_hashes[j])
+            // {
+            //     std::cout << hashval << '\t';
+            // }
+            // std::cout << '\n';
+            // std::cout << "position: " << position << " last position: " << last_position << " kmer: " << k << " old hash: " << old_hash << " new hash: " << new_hash << " new letter: " << seqan3::to_char(sequence[i+W-1]) << '\n';
         }
-        std::cout << i+size_t(W/2) << '\n';
+        // std::cout << i+size_t(W/2) << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
-        print_current_unique_hashes(current_unique_n_hashes);
+        // print_current_unique_hashes(current_unique_n_hashes);
         //results[i] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);
     }
     for (size_t i = N-size_t(W/2); i < N; i++)
     {
-        std::cout << (i+size_t(W/2)) << '\n';
+        // std::cout << (i+size_t(W/2)) << '\n';
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES) << '\n';
-        print_current_unique_hashes(current_unique_n_hashes);
+        // print_current_unique_hashes(current_unique_n_hashes);
     }
     
     return ;
@@ -173,7 +174,7 @@ void run_program(
         size_t wsize,
         std::vector<uint8_t> kmers)
 {
-    test_prog();
+    // test_prog();
     seqan3::sequence_file_input fin{input};
     for (auto & record : fin)
     {
