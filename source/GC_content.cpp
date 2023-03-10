@@ -44,7 +44,7 @@ void sequence_GC(
     // padding
     for (size_t i = 0; i < size_t(W/2)+1; i++)
     {
-        std::cout << result << ' ' << GCs << ' ' << seqan3::to_char(sequence[i]) << '\n';
+        std::cout << result << '\n';
     }
     
     // main loop
@@ -54,12 +54,12 @@ void sequence_GC(
         GCs += size_t(is_base_GT(sequence[i+size_t(W/2)]));
         GCs &= (1 << W)-1;
         result = float(std::popcount(GCs)) / float(W);
-        std::cout << result << ' ' << seqan3::to_char(sequence[i+size_t(W/2)]) << ' ' << GCs << ' ' << float(std::popcount(GCs)) << ' ' << float(W) << '\n';
+        std::cout << result << '\n';
     }
     // padding
     for (size_t i = N-size_t(W/2); i < N; i++)
     {
-        std::cout << result << ' ' << GCs << ' ' << seqan3::to_char(sequence[i]) << '\n';
+        std::cout << result << '\n';
     }
     return ;
 

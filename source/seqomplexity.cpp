@@ -46,24 +46,6 @@ float product(std::vector<size_t> & a, std::vector<size_t> & b)
     return result;
 }
 
-void print_current_unique_hashes(std::vector<size_t> h)
-{
-    for (size_t x : h)
-    {
-        std::cout << "unique hashes: " << x << ' ';
-    }
-    std::cout << '\n';
-}
-
-void print_seq_interval(std::vector<seqan3::dna5> & sequence, size_t start, size_t end)
-{
-    for (size_t i = start; i < end; i++)
-    {
-        std::cout << seqan3::to_char(sequence[i]);
-    }
-    std::cout << '\n';
-}
-
 void sequence_complexity(
     std::vector<seqan3::dna5> & sequence,
     size_t W,
