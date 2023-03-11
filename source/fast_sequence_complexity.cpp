@@ -43,6 +43,9 @@ size_t kmer_to_hash(std::string::iterator it_start, std::string::iterator it_end
     return hashvalue;
 }
 
+// this function is ran once at initialization
+// it computes the maximum number of unique hashes for each kmer
+// in a given sequence of characters
 std::vector<size_t> sequence_to_kmer_hashes(
     std::string::iterator it_start,
     std::string::iterator it_end,
@@ -75,23 +78,56 @@ float product(size_t *a, size_t *b, size_t size)
     return result;
 }
 
+size_t count_equal_kmer_hashes(size_t * kmer_hashes, size_t start, size_t end, size_t value)
+{
+    size_t count(0);
+    for (size_t i = start; i < end; i++)
+    {
+        if (kmer_hashes[i] == value)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+size_t calc_position(size_t w, size_t k, size_t i, size_t index)
+{
+    size_t alpha = w-k+1;
+    return index+((alpha+i-1)%alpha);
+}
+size_t calc_last_position(size_t w, size_t k, size_t i, size_t index)
+{
+    size_t alpha = w-k+1;
+    return index+((alpha+i-2)%alpha);
+}
+
 void run_program(
         size_t wsize,
         std::vector<uint8_t> kmers)
 {
     size_t nk(kmers.size());
-    uint8_t kmers_array[kmers.size()];
+    size_t kmers_array[nk] = {0};
     std::copy(kmers.begin(), kmers.end(), kmers_array);
     size_t MAX_UNIQUE_HASHES[nk];
     // compute the maximum number of unique hashes for each k
     for (size_t i = 0; i < nk; i++){
         MAX_UNIQUE_HASHES[i] = std::min(wsize-kmers_array[i]+1,size_t(pow(4,kmers_array[i])));
     }
-    
     std::string line;
     std::string buffer;
-    std::vector<std::vector<size_t>> kmer_hashes(kmers.size());
-    size_t current_unique_n_hashes[kmers.size()];
+    // replace the vector of vectors with an array. every array according to a kmer is saved in
+    // a certain interval on the array. this way, we can use the same array for all kmers.
+    size_t kmer_hashes_index[nk] = {0};
+    for (size_t i = 1; i < nk; i++)
+    {
+        kmer_hashes_index[i] = kmer_hashes_index[i-1]
+            + wsize - kmers_array[i-1]+1;
+    }
+    size_t kmer_hashes_size = kmer_hashes_index[nk-1]+wsize-kmers_array[nk-1]+1;
+    size_t kmer_hashes[kmer_hashes_size]= {0};
+    // std::vector<std::vector<size_t>> kmer_hashes(kmers.size());
+    size_t current_unique_n_hashes[nk] = {0};
     // first, fill the buffer and compute the initial hash values
     while (std::getline(std::cin, line))
     {
@@ -102,14 +138,35 @@ void run_program(
             // if the buffer is long enough, compute the hash values
             if (buffer.size() >= wsize)
             {
-                for (size_t i = 0; i < kmers.size(); i++)
+                for (size_t ki = 0; ki < nk; ki++)
                 {
-                    kmer_hashes[i] = sequence_to_kmer_hashes(buffer.begin(),buffer.begin()+wsize,kmers[i]);
+                    std::vector<size_t> kmer_hashes_init = sequence_to_kmer_hashes(buffer.begin(),buffer.begin()+wsize,kmers_array[ki]);
+                    // i is the index of the kmer in the window - offset
+                    // the offset is given in the index
+                    // std::cout << "calc first hashes with k = " << kmers_array[ki] << std::endl;
+                    for (size_t i = 0; i < wsize-kmers_array[ki]+1; i++)
+                    {
+                        kmer_hashes[kmer_hashes_index[ki] + i] = kmer_hashes_init[i];
+                        // DEBUG START
+                        // print kmer_hashes from 0 to kmer_hashes_index[nk-1]+kmers_array[nk-1]
+                        // for (size_t i = 0; i < kmer_hashes_size; i++)
+                        // {
+                        //     std::cout << kmer_hashes[i] << " ";
+                        // }
+                        // std::cout << std::endl;
+                        // DEBUG END
+                    }
                 }
                 // starting unique k-mer counts
-                for (size_t i = 0; i < kmers.size(); i++)
+                for (size_t ki = 0; ki < nk; ki++)
                 {
-                    current_unique_n_hashes[i] = std::set<size_t>(kmer_hashes[i].begin(), kmer_hashes[i].end() ).size();
+                    // std::cout << "count unique k-mers" << std::endl;
+                    size_t interval_start = kmer_hashes_index[ki];
+                    size_t interval_end = interval_start + wsize - kmers_array[ki]+1;
+                    // copy the interval of kmer_hashes to a set and count the elements
+                    current_unique_n_hashes[ki] = std::set<size_t>(
+                        kmer_hashes+interval_start,
+                        kmer_hashes+interval_end).size();
                 }
                 // padding to fill the first half of the window
                 for (size_t i = 0; i < size_t(wsize/2)+1; i++)
@@ -126,6 +183,7 @@ void run_program(
     }
     // main loop
     // while loop through the rest of standard input
+
     size_t i(0);
     while (std::getline(std::cin, line))
     {
@@ -137,7 +195,7 @@ void run_program(
             for (char c : line)
             {
                 // DEBUG START
-                if (c == '\n') { std::cout << "found line end.\n"; continue; }
+                // if (c == '\n') { std::cout << "found line end.\n"; continue; }
                 // DEBUG END
                 i++;
                 size_t h = hash_dna5(c);
@@ -145,15 +203,15 @@ void run_program(
                 {
                     size_t k = kmers_array[j];
                     size_t k_base_length(wsize-k+1);
-                    size_t position = size_t((k_base_length+i-1)%(k_base_length));
-                    size_t last_position=size_t((k_base_length+i-2)%(k_base_length));
-                    size_t old_hash = kmer_hashes[j][last_position];
-                    bool last_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), kmer_hashes[j][position]) == 1;
+                    size_t position = calc_position(wsize,k,i,kmer_hashes_index[j]);
+                    size_t last_position=calc_last_position(wsize,k,i,kmer_hashes_index[j]);
+                    size_t old_hash = kmer_hashes[last_position];
+                    bool last_hash_unique = count_equal_kmer_hashes(kmer_hashes,kmer_hashes_index[j],kmer_hashes_index[j]+wsize-k+1,kmer_hashes[position]) == 1;
                     current_unique_n_hashes[j] -= size_t(last_hash_unique);
                     size_t new_hash = extend_hash(old_hash,h,k);
-                    kmer_hashes[j][position]=new_hash;
+                    kmer_hashes[position]=new_hash;
                     // update count of unique elements in k-mers
-                    bool new_hash_unique = std::count(kmer_hashes[j].begin(), kmer_hashes[j].end(), new_hash) == 1;
+                    bool new_hash_unique = count_equal_kmer_hashes(kmer_hashes,kmer_hashes_index[j],kmer_hashes_index[j]+wsize-k+1,new_hash) == 1;
                     current_unique_n_hashes[j] += int(new_hash_unique);
                     // for (size_t hashval : kmer_hashes[j])
                     // {
@@ -170,7 +228,8 @@ void run_program(
         //results[i] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);  
         }
     }
-        for (size_t i = 0; i < size_t(wsize/2); i++)
+    // print the last half of the window
+    for (size_t i = 0; i < size_t(wsize/2); i++)
     {
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\n';
     }
