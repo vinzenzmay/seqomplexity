@@ -112,7 +112,7 @@ void run_program(
     size_t MAX_UNIQUE_HASHES[nk];
     // compute the maximum number of unique hashes for each k
     for (size_t i = 0; i < nk; i++){
-        MAX_UNIQUE_HASHES[i] = std::min(wsize-kmers_array[i]+1,size_t(pow(4,kmers_array[i])));
+        MAX_UNIQUE_HASHES[i] = std::min(wsize-kmers_array[i]+1,size_t(pow(4,kmers_array[i]))+1);
     }
     std::string line;
     std::string buffer;
