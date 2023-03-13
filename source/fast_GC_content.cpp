@@ -35,10 +35,11 @@ size_t GC_of_interval(std::string & sequence, size_t it_start, size_t w)
 
 void run_program(size_t wsize)
 {
-    // test if wsize is odd or 2 < wsize < 21, else throw exception
+    // test if wsize is odd or 2 < wsize < 21, else throw error
     if (wsize % 2 == 0 || wsize < 3 || wsize > 20)
     {
-        throw std::invalid_argument("wsize must be odd and 2 < wsize < 21");
+        std::cerr << "wsize must be odd and 2 < wsize < 21" << std::endl;
+        exit(1);
     }
 
     std::string line;
@@ -67,31 +68,18 @@ void run_program(size_t wsize)
                 // remove the first w letters from the buffer
                 // compute rest of buffer
                 buffer.erase(0,wsize);
-                for (char c : buffer)
-                {
-                    // shift the GCs value to the left
-                    GCs = GCs << 1;
-                    // add the new base to the GCs value
-                    GCs += is_base_GC(c);
-                    // mask the GCs value to the correct size
-                    GCs &= ((1 << (wsize))-1);
-                    // compute the result
-                    result = float(std::popcount(GCs)) / float(wsize);
-                    // cout result
-                    std::cout << result << '\n';
-                }
                 break;
             }
         }
     }
     // main loop
     // while loop through the rest of standard input
-    while (std::getline(std::cin, line))
+    while (std::getline(std::cin, line) or buffer.size() > 0)
     {
-        if (line[0] != '>')
+        if (line[0] != '>' || buffer.size() > 0)
         {
             // if the buffer is not empty, then add the buffer to the front of the line
-            if (buffer.size() > 0) { line = buffer + line;}
+            if (buffer.size() > 0) { line = buffer + line; buffer.erase();}
             // iterate over the line
             for (char c : line)
             {

@@ -102,10 +102,22 @@ size_t calc_last_position(size_t w, size_t k, size_t i, size_t index)
     return index+((alpha+i-2)%alpha);
 }
 
-void run_program(
+int run_program(
         size_t wsize,
         std::vector<uint8_t> kmers)
 {
+    // check if the window size is larger than the maximum kmer size
+    if (wsize < *std::max_element(kmers.begin(), kmers.end()))
+    {
+        std::cerr << "The window size must be larger than the maximum kmer size." << std::endl;
+        exit(1);
+    }
+    // check if wsize is odd and 2 < wsize < 21.
+    if (wsize % 2 == 0 || wsize < 2 || wsize > 21)
+    {
+        std::cerr << "The window size must be an odd number between 2 and 21." << std::endl;
+        exit(1);
+    }
     size_t nk(kmers.size());
     size_t kmers_array[nk] = {0};
     std::copy(kmers.begin(), kmers.end(), kmers_array);
@@ -185,12 +197,12 @@ void run_program(
     // while loop through the rest of standard input
 
     size_t i(0);
-    while (std::getline(std::cin, line))
+    while (std::getline(std::cin, line) || buffer.size() > 0)
     {
-        if (line[0] != '>')
+        if (line[0] != '>' || buffer.size() > 0)
         {
             // if the buffer is not empty, then add the buffer to the front of the line
-            if (buffer.size() > 0) { line = buffer + line;}
+            if (buffer.size() > 0) { line = buffer + line; buffer.erase();}
             // iterate over the line
             for (char c : line)
             {
@@ -233,6 +245,7 @@ void run_program(
     {
         std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\n';
     }
+    return 0;
 }
 
 
