@@ -35,6 +35,9 @@ size_t GC_of_interval(std::string & sequence, size_t it_start, size_t w)
 
 void run_program(size_t wsize)
 {
+    // test if wsize is odd, else throw exception
+    if (wsize % 2 == 0) { throw std::invalid_argument("wsize must be odd"); }
+
     std::string line;
     std::string buffer;
     
@@ -59,7 +62,21 @@ void run_program(size_t wsize)
                     std::cout << result << '\n';
                 }
                 // remove the first w letters from the buffer
+                // compute rest of buffer
                 buffer.erase(0,wsize);
+                for (char c : buffer)
+                {
+                    // shift the GCs value to the left
+                    GCs = GCs << 1;
+                    // add the new base to the GCs value
+                    GCs += is_base_GC(c);
+                    // mask the GCs value to the correct size
+                    GCs &= ((1 << (wsize))-1);
+                    // compute the result
+                    result = float(std::popcount(GCs)) / float(wsize);
+                    // cout result
+                    std::cout << result << '\n';
+                }
                 break;
             }
         }
@@ -111,7 +128,7 @@ void initialise_parser(sharg::parser & parser, cmd_arguments & args)
     parser.add_option(args.wsize, sharg::config{
         .short_id = 'w',
         .long_id = "wsize",
-        .description = "window size w must be 2 < w < 21."});
+        .description = "window size w must be 2 < w < 21 and odd"});
 }
  
 int main(int argc, char ** argv)
