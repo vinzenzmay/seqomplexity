@@ -35,8 +35,11 @@ size_t GC_of_interval(std::string & sequence, size_t it_start, size_t w)
 
 void run_program(size_t wsize)
 {
-    // test if wsize is odd, else throw exception
-    if (wsize % 2 == 0) { throw std::invalid_argument("wsize must be odd"); }
+    // test if wsize is odd or 2 < wsize < 21, else throw exception
+    if (wsize % 2 == 0 || wsize < 3 || wsize > 20)
+    {
+        throw std::invalid_argument("wsize must be odd and 2 < wsize < 21");
+    }
 
     std::string line;
     std::string buffer;
