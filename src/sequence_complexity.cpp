@@ -209,3 +209,101 @@ std::vector<float> run_program(
     }
     return results;
 }
+
+
+struct cmd_arguments {
+    int w;
+    std::vector<uint8_t> k_values;
+    std::string dna;
+    bool verbose;
+};
+
+void print_help() {
+    std::cout << "Usage: program_name [-w <odd_integer>] [-k <ascending_integers>]\n"
+              << "Options:\n"
+              << "  -w   Set an odd integer between 5 and 21 (default: 21)\n"
+              << "  -k   Set multiple ascending integers between 2 and w/2 (default: 2 3 4 5 6 7 8 9 10)\n"
+              << "  -s   DNA sequence or several sequences, e.g. 'ACGTCGCTGCAT'\n"
+              << "  -v   verbosity: print DNA letter, its position and its hash results value\n";
+}
+
+void parse_arguments(int argc, char **argv, cmd_arguments &args) {
+    args.w = 21;
+    args.k_values = {2, 3, 4, 5, 6, 7, 8, 9, 10};
+    args.verbose = false;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+
+        if (arg == "-w") {
+            if (i + 1 < argc) {
+                args.w = std::atoi(argv[++i]);
+                if (args.w < 5 || args.w > 21 || args.w % 2 == 0) {
+                    std::cerr << "Error: Invalid value for -w. Please provide an odd integer between 5 and 21.\n";
+                    print_help();
+                    std::exit(EXIT_FAILURE);
+                }
+            } else {
+                std::cerr << "Error: -w option requires an argument.\n";
+                print_help();
+                std::exit(EXIT_FAILURE);
+            }
+        } else if (arg == "-k") {
+            // erase default values
+            args.k_values.clear();
+            while (i + 1 < argc && argv[i + 1][0] != '-') {
+                int k_value = std::atoi(argv[++i]);
+                if (k_value < 2 || k_value > args.w / 2) {
+                    std::cerr << "Error: Invalid value for -k. Please provide ascending integers between 2 and w/2.\n";
+                    print_help();
+                    std::exit(EXIT_FAILURE);
+                }
+                args.k_values.push_back(k_value);
+                // check if k_values is in ascending order
+                if (args.k_values.size() > 1 && args.k_values[args.k_values.size() - 2] >= args.k_values[args.k_values.size() - 1]) {
+                    std::cerr << "Error: Invalid value for -k. Please provide ascending integers between 2 and w/2.\n";
+                    print_help();
+                    std::exit(EXIT_FAILURE);
+                }
+            }
+        } else if (arg == "-s") {
+            if (i + 1 < argc) {
+                args.dna = argv[++i];
+            } else {
+                std::cerr << "Error: -s option requires an argument.\n";
+                print_help();
+                std::exit(EXIT_FAILURE);
+            }
+            // concatenate all remaining arguments if they dont start with '-'
+            while (i + 1 < argc && argv[i + 1][0] != '-') {
+                args.dna += argv[++i];
+            }
+        } else if (arg == "-v") {
+            args.verbose = true;
+        } else if (arg == "-h") {
+            print_help();
+            std::exit(EXIT_SUCCESS);
+        } else {
+            std::cerr << "Error: Unknown option '" << arg << "'.\n";
+            print_help();
+            std::exit(EXIT_FAILURE);
+        }
+    }
+}
+
+int main(int argc, char **argv) {
+    cmd_arguments args;
+    parse_arguments(argc, argv, args);
+    std::vector<float> result = run_program(args.w, args.k_values, args.dna);
+    for (size_t i = 0; i < result.size(); i++)
+    {
+        if (!args.verbose){
+            std::cout << result[i] << std::endl;
+        }
+        else{
+            std::cout << args.dna[i] << '\t' << i << '\t' << result[i] << std::endl;
+        }
+    }
+
+    return 0;
+}

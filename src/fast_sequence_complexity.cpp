@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -160,14 +161,6 @@ int run_program(
                     for (size_t i = 0; i < wsize-kmers_array[ki]+1; i++)
                     {
                         kmer_hashes[kmer_hashes_index[ki] + i] = kmer_hashes_init[i];
-                        // DEBUG START
-                        // print kmer_hashes from 0 to kmer_hashes_index[nk-1]+kmers_array[nk-1]
-                        // for (size_t i = 0; i < kmer_hashes_size; i++)
-                        // {
-                        //     std::cout << kmer_hashes[i] << " ";
-                        // }
-                        // std::cout << std::endl;
-                        // DEBUG END
                     }
                 }
                 // starting unique k-mer counts
@@ -185,7 +178,7 @@ int run_program(
                 for (size_t i = 0; i < size_t(wsize/2)+1; i++)
                 {
                     // std::cout << i << '\n';
-                    std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\n';
+                    std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\t' << buffer[i] << '\t' << i << '\n';
                 }
                 // remove the first w letters from the buffer
                 buffer.erase(0,wsize);
@@ -207,9 +200,6 @@ int run_program(
             // iterate over the line
             for (char c : line)
             {
-                // DEBUG START
-                // if (c == '\n') { std::cout << "found line end.\n"; continue; }
-                // DEBUG END
                 i++;
                 size_t h = hash_dna5(c);
                 for (size_t j = 0; j < nk; j++)
@@ -233,29 +223,22 @@ int run_program(
                     // std::cout << '\n';
                     // std::cout << "position: " << position << " last position: " << last_position << " kmer: " << k << " old hash: " << old_hash << " new hash: " << new_hash << " new letter: " << seqan3::to_char(sequence[i+wsize-1]) << '\n';
                 }
-            std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\n';
+                std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\t' << buffer[i] << '\t' << i << '\n';
             }
             buffer.clear();
-        // std::cout << i+size_t(wsize/2) << '\n';
-        // print_current_unique_hashes(current_unique_n_hashes);
-        //results[i] = product(current_unique_n_hashes,MAX_UNIQUE_HASHES);  
         }
     }
     // print the last half of the window
     for (size_t i = 0; i < size_t(wsize/2); i++)
     {
-        std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\n';
+        std::cout << product(current_unique_n_hashes,MAX_UNIQUE_HASHES,nk) << '\t' << buffer[i] << '\t' << i << '\n';
     }
     return 0;
 }
 
-#include <iostream>
-#include <vector>
-#include <cstdlib>
-
 struct cmd_arguments {
     int w;
-    std::vector<int> k_values;
+    std::vector<uint8_t> k_values;
 };
 
 void print_help() {
@@ -294,6 +277,12 @@ void parse_arguments(int argc, char **argv, cmd_arguments &args) {
                     std::exit(EXIT_FAILURE);
                 }
                 args.k_values.push_back(k_value);
+                // check if k_values is in ascending order
+                if (args.k_values.size() > 1 && args.k_values[args.k_values.size() - 2] >= args.k_values[args.k_values.size() - 1]) {
+                    std::cerr << "Error: Invalid value for -k. Please provide ascending integers between 2 and w/2.\n";
+                    print_help();
+                    std::exit(EXIT_FAILURE);
+                }
             }
         } else {
             std::cerr << "Error: Unknown option '" << arg << "'.\n";
@@ -306,15 +295,7 @@ void parse_arguments(int argc, char **argv, cmd_arguments &args) {
 int main(int argc, char **argv) {
     cmd_arguments args;
     parse_arguments(argc, argv, args);
-
-    // Display parsed arguments
-    std::cout << "Parsed Arguments:\n";
-    std::cout << "  -w: " << args.w << "\n";
-    std::cout << "  -k:";
-    for (int k : args.k_values) {
-        std::cout << " " << k;
-    }
-    std::cout << "\n";
+    run_program(args.w, args.k_values);
 
     return 0;
 }

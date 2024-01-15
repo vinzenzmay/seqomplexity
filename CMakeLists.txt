@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 # Add your source files
 set(SOURCE_FILES
-    src/fast_sequence_complexity.cpp
+    src/sequence_complexity.cpp
 )
 
-add_executable(fast_sequence_complexity ${SOURCE_FILES})
+add_executable(sequence_complexity ${SOURCE_FILES})
